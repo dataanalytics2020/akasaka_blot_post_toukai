@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 # 埼玉千葉神奈川記事反映本番用
+import requests
+import json
 from wordpress_xmlrpc.methods import media
 from oauth2client.service_account import ServiceAccountCredentials
 import gspread
@@ -35,6 +37,8 @@ from datetime import timedelta
 import datetime
 import os
 from dotenv import load_dotenv
+from selenium.webdriver.common.by import By
+
 print('ライブラリの読み込み完了')
 
 # .envファイルの内容を読み込見込む
@@ -57,12 +61,13 @@ def syuzai_df():
 
 
 def recommend_image(write_image_context, length):
-    global context_1, save_image_jpg
+    global context_1, save_image_jpg,output_path
 
     # 元画像を読み込んでくる
-    save_image_jpg = f"image\\eva_board_{tomorrow_url}.jpg"
+    save_image_jpg = f"image/全媒体/eva_board_{tomorrow_url}.jpg"
+    output_path = f"eva_board_{tomorrow_url}.jpg"
     # image_path = r"C:\Users\81801\Desktop\twitter_anarytics_bot\recommend_syuzai_report\board_image.jpg" #win
-    image_path = r"image\eva_board.jpg"  # mac
+    image_path = r"image/全媒体/eva_board.jpg"  # mac
 
     image = Image.open(image_path)
 
@@ -98,10 +103,10 @@ def recommend_image2(todoufuken_kanji, write_image_context, length, n):
     global context_1, save_image_jpg
 
     # 元画像を読み込んでくる
-    save_image_jpg = f"syuzai_report_{todoufuken_kanji}_{tomorrow_url}_{n}.jpg"
+    save_image_jpg = f"image/全媒体/syuzai_report_{todoufuken_kanji}_{tomorrow_url}_{n}.jpg"
     #save_image_jpg = win_path+f'python/slot/recommend_syuzai_report/{todouhuken}_syuzai_report_{tomorrow_str}.jpg'
     # image_path = r"C:\Users\81801\Desktop\twitter_anarytics_bot\recommend_syuzai_report\board_image.jpg" #win
-    # image_path = win_path+'python/slot/recommend_syuzai_report/board_image.jpg" #mac
+    image_path ='image/全媒体/board_image.jpg'
 
     image = Image.open(image_path)
     draw = ImageDraw.Draw(image)
@@ -172,7 +177,7 @@ def upload_image(in_image_file_name, out_image_file_name):
 
 def post_line(message):
     url = "https://notify-api.line.me/api/notify"
-    token = os.environ('LINE_TOKEN')
+    token = os.environ['LINE_TOKEN']
     headers = {"Authorization" : "Bearer "+ token}
     payload = {"message" :  message}
     #imagesフォルダの中のgazo.jpg
@@ -212,43 +217,46 @@ WORDPRESS_PW = os.environ['WORDPRESS_PW']
 WORDPRESS_URL = os.environ['WORDPRESS_URL']
 wp = Client(WORDPRESS_URL, WORDPRESS_ID, WORDPRESS_PW)
 
-
+win_path = 'image/全媒体/'
 # 埼玉千葉神奈川記事反映本番用
 wp_completed_footer = ''
 for ken_number in [2, 3, 4]:
     todouhuken = 'tokyo'
     SERVICE_ACCOUT_FILE ='sercret_json/twitteranalytics-jsonsercretkey.json'
-    read_image_jpg = f"/Users/macbook/Desktop/tokyo_ika_board.jpg"
+    read_image_jpg = f"image/全媒体/tokyo_ika_board.jpg"
     font_path = "font/LightNovelPOPv2.otf"
     
     options = Options()
     options.add_argument('--headless')
-
     options.add_argument("--no-sandbox") 
+    #options.add_argument('--user-agent=' + 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.61 Safari/537.36')
     browser = webdriver.Chrome(ChromeDriverManager().install(),options=options)
-
-    browser.implicitly_wait(10)
+    
     url_login = "https://hall-navi.com/login_form_mail"
-    # admageを開く
+    browser.implicitly_wait(10)
+    
     browser.get(url_login)
     browser.implicitly_wait(10)
     # id
-    element = browser.find_element_by_name("id")
+    element = browser.find_element(By.NAME, "id")
     element.click()
     browser.implicitly_wait(10)
     element.send_keys('tsc953u@gmail.com')
     # pw
-    element = browser.find_element_by_name("pass")
+    element = browser.find_element(By.NAME, "pass")
     element.click()
     browser.implicitly_wait(10)
     element.send_keys('jdhibh')
     browser.implicitly_wait(10)
-    element = browser.find_element_by_class_name("box_hole_view_report_input")
+    element = browser.find_element(By.CLASS_NAME,"box_hole_view_report_input")
     element.click()
+    time.sleep(1)
+    
+    browser.refresh()
     todouhuken_number = 1
 
     today = datetime.date.today()
-    tomorrow = datetime.date.today() + datetime.timedelta(days=6)
+    tomorrow = datetime.date.today() + datetime.timedelta(days=1)
 
     # for baitai in ['スロパチ','天草ヤスヲ','ホールサーチマン','Gooパチ','ホール攻略']:
     #     tokyou_syuzai_df_a = tokyou_syuzai_df[tokyou_syuzai_df['baitai'] == baitai]
@@ -263,6 +271,7 @@ for ken_number in [2, 3, 4]:
     day_tomorrow_str = tomorrow.strftime("%d日").lstrip('0')
     tomorrow_str = month_tomorrow_str + day_tomorrow_str
     tomorrow_url = tomorrow.strftime("%Y-%m-%d")
+    output_path = f"eva_board_{tomorrow_url}.jpg"
 
     url = f"https://hall-navi.com/?area=kantou"
     browser.get(url)
@@ -399,13 +408,13 @@ for ken_number in [2, 3, 4]:
 
     #output_path = imgPath.replace('/Users/macbook/Desktop/eva_board_','')
     recommend_image2(todoufuken_kanji, text_1, text_1.count('\n'), 1)
-    upload_image(save_image_jpg, save_image_jpg)
+    upload_image(save_image_jpg, output_path)
     recommend_image2(todoufuken_kanji, text_2, text_2.count('\n'), 2)
-    upload_image(save_image_jpg, save_image_jpg)
+    upload_image(save_image_jpg, output_path)
     recommend_image2(todoufuken_kanji, text_3, text_3.count('\n'), 3)
-    upload_image(save_image_jpg, save_image_jpg)
+    upload_image(save_image_jpg, output_path)
     recommend_image2(todoufuken_kanji, text_4, text_4.count('\n'), 4)
-    upload_image(save_image_jpg, save_image_jpg)
+    upload_image(save_image_jpg, output_path)
 
     # スプレッドシート書き込み
     SCOPE = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
@@ -522,7 +531,7 @@ for ken_number in [2, 3, 4]:
     tokyou_syuzai_df['tenpo_name'] = tokyou_syuzai_df['tenpo_name'].map(tenpo_convert_string)
     tokyou_syuzai_df_defalut = tokyou_syuzai_df = tokyou_syuzai_df.sort_values('syuzai')
     tokyou_syuzai_df_defalut
-    baitai_list = ['スロパチ', '天草ヤスヲ', 'ホールサーチマン', 'ホール攻略', 'Gooパチ', 'パチスロ必勝本', 'スクープTV', 'ジャンバリ', '一撃✖️DMM', '一撃', 'アツ姫', '爆ガチ！']
+    baitai_list = ['スロパチ', '天草ヤスヲ', 'ホールサーチマン', 'ホール攻略', 'Gooパチ', 'パチスロ必勝本', 'スクープTV', 'ジャンバリ', '一撃_DMM', '一撃', 'アツ姫', '爆ガチ！']
 
     for baitai in baitai_list:
         context = f'''{h1_text} 取材まとめ'''
@@ -588,7 +597,7 @@ for ken_number in [2, 3, 4]:
     im1 = Image.open(win_path + f'未調査.jpg')
     im2 = Image.open(win_path + f'eva_board_{tomorrow_url}.jpg')
     get_concat_v(im1, im2).save(win_path + f'eva_board_{todoufuken}_{tomorrow_url}_未調査.jpg')
-    os.remove(win_path + f'eva_board_{tomorrow_url}.jpg')
+    #os.remove(win_path + f'eva_board_{tomorrow_url}.jpg')
 
     im1 = Image.open(win_path + f'eva_board_{todoufuken}_{tomorrow_url}_スロパチ.jpg')
     im2 = Image.open(win_path + f'eva_board_{todoufuken}_{tomorrow_url}_天草ヤスヲ.jpg')
@@ -607,9 +616,9 @@ for ken_number in [2, 3, 4]:
     im1 = Image.open(win_path + f'eva_board_{todoufuken}_{tomorrow_url}_ジャンバリ.jpg')
     im2 = Image.open(win_path + f'eva_board_{todoufuken}_{tomorrow_url}_スクープTV.jpg')
     im3 = Image.open(win_path + f'eva_board_{todoufuken}_{tomorrow_url}_一撃.jpg')
-    im4 = Image.open(win_path + f'eva_board_{todoufuken}_{tomorrow_url}_一撃✖️DMM.jpg')
+    im4 = Image.open(win_path + f'eva_board_{todoufuken}_{tomorrow_url}_一撃_DMM.jpg')
 
-    get_concat_h_multi_blank([im1, im2, im3, im4]).save(win_path + f'eva_board_{todoufuken}_{tomorrow_url}_ジャンバリ_スクープTV_一撃_一撃✖️DMM.jpg')
+    get_concat_h_multi_blank([im1, im2, im3, im4]).save(win_path + f'eva_board_{todoufuken}_{tomorrow_url}_ジャンバリ_スクープTV_一撃_一撃_DMM.jpg')
 
     for number in [0, 4, 8]:
         im1 = Image.open(win_path + f'eva_board_{todoufuken}_{tomorrow_url}_{baitai_list[number+0]}.jpg')
@@ -635,7 +644,7 @@ for ken_number in [2, 3, 4]:
     output_path = imgPath.replace(win_path + 'eva_board_', '')
     upload_image(imgPath, output_path)
 
-    baitai_list = ['スロパチ', '天草ヤスヲ', 'ホールサーチマン', 'ホール攻略', 'Gooパチ', 'パチスロ必勝本', 'スクープTV', 'ジャンバリ', '一撃✖️DMM', '一撃', 'アツ姫', '爆ガチ！']
+    baitai_list = ['スロパチ', '天草ヤスヲ', 'ホールサーチマン', 'ホール攻略', 'Gooパチ', 'パチスロ必勝本', 'スクープTV', 'ジャンバリ', '一撃_DMM', '一撃', 'アツ姫', '爆ガチ！']
 
     for baitai in baitai_list:
         try:
@@ -674,7 +683,7 @@ for ken_number in [2, 3, 4]:
 
     wp_context = wp_context_1 + wp_context_2
 
-    baitai_list_error = ['スロパチ', '天草ヤスヲ', 'ホールサーチマン', 'ホール攻略', 'Gooパチ', 'パチスロ必勝本', 'スクープTV', 'ジャンバリ', '一撃✖️DMM', '一撃', 'アツ姫', '爆ガチ！']
+    baitai_list_error = ['スロパチ', '天草ヤスヲ', 'ホールサーチマン', 'ホール攻略', 'Gooパチ', 'パチスロ必勝本', 'スクープTV', 'ジャンバリ', '一撃_DMM', '一撃', 'アツ姫', '爆ガチ！']
 
     sumnail_text = ''
     # sumnail_len_list =
@@ -726,7 +735,7 @@ wp_completed_text_compted = wp_completed_text_header + wp_completed_footer
 if os.name == 'nt':
     font_path = r"C:\Windows\Fonts\ラノベPOP.otf"
 elif os.name == 'posix':
-    font_path = "/Users/macbook/Library/Fonts/GenEiGothicP-H-KL.otf"
+    font_path = "font/LightNovelPOPv2.otf"
 # def recommend_image(todouhuken,write_image_context):
 # image_path = r"C:\Users\81801\Desktop\twitter_anarytics_bot\recommend_syuzai_report\board_image.jpg" #win
 # image_path = win_path+'sumnail.png" #mac
@@ -738,11 +747,6 @@ elif os.name == 'posix':
 
 # サムネイル作成
 
-
-if os.name == 'nt':
-    font_path = r"C:\Windows\Fonts\ラノベPOP.otf"
-elif os.name == 'posix':
-    font_path = "/Users/macbook/Library/Fonts/GenEiGothicP-H-KL.otf"
 # def recommend_image(todouhuken,write_image_context):
 # image_path = r"C:\Users\81801\Desktop\twitter_anarytics_bot\recommend_syuzai_report\board_image.jpg" #win
 image_path = win_path + '千葉.jpg'  # mac
@@ -754,7 +758,7 @@ write_image_context = f'''　　{string_date}
 明日の取材まとめ'''
 
 
-font_path = r"C:\Users\81801\Desktop\LightNovelPOP_FONT\ラノベPOP.otf"
+font_path = r"font/LightNovelPOPv2.otf"
 # "font/LightNovelPOPv2.otf"
 # font/LightNovelPOPv2.otf
 
